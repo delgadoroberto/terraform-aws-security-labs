@@ -19,5 +19,14 @@ jobs:
           # Target the AWS folder directly to ignore Azure and GCP
           directory: aws/
           framework: terraform
-          # Optional: Uncomment to prevent pipeline failure during remediation
-          # soft_fail: true
+          # Export results to JSON format for DefectDojo integration
+          output_format: json
+          output_file_path: checkov_report.json
+          # Prevent pipeline failure so the report can be generated and uploaded
+          soft_fail: true
+
+      - name: Upload Report Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: checkov-json-report
+          path: checkov_report.json
