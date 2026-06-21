@@ -16,8 +16,8 @@ jobs:
       - name: Run Checkov Action
         uses: bridgecrewio/checkov-action@master
         with:
-          # Target the AWS folder directly to ignore Azure and GCP
-          directory: aws/
+          # Adjust the correct path according to the Terragoat structure
+          directory: terraform/aws/
           framework: terraform
           # Export results to JSON format for DefectDojo integration
           output_format: json
