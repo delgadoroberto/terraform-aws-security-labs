@@ -1,25 +1,23 @@
-name: Checkov AWS Scan
+name: Checkov IaC Scan
 
 on:
   push:
-    branches: [ "main", "master" ]
+    branches: [ main, master ]
   pull_request:
-    branches: [ "main", "master" ]
+    branches: [ main, master ]
 
 jobs:
   scan:
-    runs-on: Ubuntu-latest
-
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Run Checkov (AWS Only)
-        name: Test security
+      - name: Run Checkov Action
         uses: bridgecrewio/checkov-action@master
         with:
-          # Scan only the AWS directory, bypassing Azure and GCP
+          # Target the AWS folder directly to ignore Azure and GCP
           directory: aws/
-          # Optional: Uncomment to prevent pipeline failure during remediation
-          # soft_fail: true 
           framework: terraform
+          # Optional: Uncomment to prevent pipeline failure during remediation
+          # soft_fail: true
