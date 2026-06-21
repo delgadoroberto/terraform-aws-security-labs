@@ -16,14 +16,14 @@ jobs:
       - name: Run Checkov Action
         uses: bridgecrewio/checkov-action@master
         with:
-          # Adjust the correct path according to the Terragoat structure
+          # Target the AWS folder directly to ignore Azure and GCP
           directory: terraform/aws/
           framework: terraform
-          # Export results to JSON format for DefectDojo integration
+          # Export results to JSON format
           output_format: json
           output_file_path: checkov_report.json
-          # Prevent pipeline failure so the report can be generated and uploaded
-          soft_fail: true
+          # Enforce pipeline failure on any vulnerability find
+          soft_fail: false
 
       - name: Upload Report Artifact
         uses: actions/upload-artifact@v4
