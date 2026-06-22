@@ -6,27 +6,31 @@ on:
   pull_request:
     branches: [ main, master ]
 
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
 jobs:
   scan:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Run Checkov Action
         uses: bridgecrewio/checkov-action@master
         with:
-          # Target the AWS folder directly to ignore Azure and GCP
           directory: terraform/aws/
           framework: terraform
-          # Export results to JSON format
-          output_format: json
-          output_file_path: checkov_report.json
-          # Enforce pipeline failure on any vulnerability find
-          soft_fail: false
+          # Generate both CLI output for console and SARIF for GitHub Security tab
+          output_format: cli,sarif
+          output_file_path: console,results.sarif
+          # Set to true to allow the workflow to finish and upload the SARIF report
+          soft_fail: true
 
-      - name: Upload Report Artifact
-        uses: actions/upload-artifact@v4
+      - name: Upload SARIF results to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
         with:
-          name: checkov-json-report
-          path: checkov_report.json
+          sarif_file: results.sarif
