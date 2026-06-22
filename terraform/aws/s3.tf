@@ -1,8 +1,5 @@
+# 1. DATA BUCKET
 resource "aws_s3_bucket" "data" {
-  # bucket is public
-  # bucket is not encrypted
-  # bucket does not have access logs
-  # bucket does not have versioning
   bucket        = "${local.resource_prefix.value}-data"
   force_destroy = true
   tags = merge({
@@ -20,10 +17,42 @@ resource "aws_s3_bucket" "data" {
   })
 }
 
-resource "aws_s3_bucket_object" "data_object" {
+resource "aws_s3_bucket_versioning" "data_versioning" {
   bucket = aws_s3_bucket.data.id
-  key    = "customer-master.xlsx"
-  source = "resources/customer-master.xlsx"
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "data_encryption" {
+  bucket = aws_s3_bucket.data.id
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "data_public_block" {
+  bucket                  = aws_s3_bucket.data.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_logging" "data_logging" {
+  bucket        = aws_s3_bucket.data.id
+  target_bucket = aws_s3_bucket.logs.id
+  target_prefix = "data-log/"
+}
+
+# 2. CUSTOMER MASTER OBJECT (Requires Encryption)
+resource "aws_s3_bucket_object" "data_object" {
+  bucket        = aws_s3_bucket.data.id
+  key           = "customer-master.xlsx"
+  source        = "resources/customer-master.xlsx"
+  kms_key_id    = aws_kms_key.logs_key.arn
   tags = merge({
     Name        = "${local.resource_prefix.value}-customer-master"
     Environment = local.resource_prefix.value
@@ -39,12 +68,9 @@ resource "aws_s3_bucket_object" "data_object" {
   })
 }
 
+# 3. FINANCIALS BUCKET
 resource "aws_s3_bucket" "financials" {
-  # bucket is not encrypted
-  # bucket does not have access logs
-  # bucket does not have versioning
   bucket        = "${local.resource_prefix.value}-financials"
-  acl           = "private"
   force_destroy = true
   tags = merge({
     Name        = "${local.resource_prefix.value}-financials"
@@ -59,17 +85,41 @@ resource "aws_s3_bucket" "financials" {
     git_repo             = "terragoat"
     yor_trace            = "0e012640-b597-4e5d-9378-d4b584aea913"
   })
-
 }
 
-resource "aws_s3_bucket" "operations" {
-  # bucket is not encrypted
-  # bucket does not have access logs
-  bucket = "${local.resource_prefix.value}-operations"
-  acl    = "private"
-  versioning {
-    enabled = true
+resource "aws_s3_bucket_versioning" "financials_versioning" {
+  bucket = aws_s3_bucket.financials.id
+  versioning_configuration {
+    status = "Enabled"
   }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "financials_encryption" {
+  bucket = aws_s3_bucket.financials.id
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "financials_public_block" {
+  bucket                  = aws_s3_bucket.financials.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_logging" "financials_logging" {
+  bucket        = aws_s3_bucket.financials.id
+  target_bucket = aws_s3_bucket.logs.id
+  target_prefix = "financials-log/"
+}
+
+# 4. OPERATIONS BUCKET
+resource "aws_s3_bucket" "operations" {
+  bucket        = "${local.resource_prefix.value}-operations"
   force_destroy = true
   tags = merge({
     Name        = "${local.resource_prefix.value}-operations"
@@ -86,17 +136,39 @@ resource "aws_s3_bucket" "operations" {
   })
 }
 
+resource "aws_s3_bucket_versioning" "operations_versioning" {
+  bucket = aws_s3_bucket.operations.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "operations_encryption" {
+  bucket = aws_s3_bucket.operations.id
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "operations_public_block" {
+  bucket                  = aws_s3_bucket.operations.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_logging" "operations_logging" {
+  bucket        = aws_s3_bucket.operations.id
+  target_bucket = aws_s3_bucket.logs.id
+  target_prefix = "operations-log/"
+}
+
+# 5. DATA SCIENCE BUCKET
 resource "aws_s3_bucket" "data_science" {
-  # bucket is not encrypted
-  bucket = "${local.resource_prefix.value}-data-science"
-  acl    = "private"
-  versioning {
-    enabled = true
-  }
-  logging {
-    target_bucket = "${aws_s3_bucket.logs.id}"
-    target_prefix = "log/"
-  }
+  bucket        = "${local.resource_prefix.value}-data-science"
   force_destroy = true
   tags = {
     git_commit           = "d68d2897add9bc2203a5ed0632a5cdd8ff8cefb0"
@@ -110,20 +182,39 @@ resource "aws_s3_bucket" "data_science" {
   }
 }
 
-resource "aws_s3_bucket" "logs" {
-  bucket = "${local.resource_prefix.value}-logs"
-  acl    = "log-delivery-write"
-  versioning {
-    enabled = true
+resource "aws_s3_bucket_versioning" "data_science_versioning" {
+  bucket = aws_s3_bucket.data_science.id
+  versioning_configuration {
+    status = "Enabled"
   }
-  server_side_encryption_configuration {
-    rule {
-      apply_server_side_encryption_by_default {
-        sse_algorithm     = "aws:kms"
-        kms_master_key_id = "${aws_kms_key.logs_key.arn}"
-      }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "data_science_encryption" {
+  bucket = aws_s3_bucket.data_science.id
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
     }
   }
+}
+
+resource "aws_s3_bucket_public_access_block" "data_science_public_block" {
+  bucket                  = aws_s3_bucket.data_science.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_logging" "data_science_logging" {
+  bucket        = aws_s3_bucket.data_science.id
+  target_bucket = aws_s3_bucket.logs.id
+  target_prefix = "data-science-log/"
+}
+
+# 6. LOGS BUCKET (Target for access logs)
+resource "aws_s3_bucket" "logs" {
+  bucket        = "${local.resource_prefix.value}-logs"
   force_destroy = true
   tags = merge({
     Name        = "${local.resource_prefix.value}-logs"
@@ -138,4 +229,29 @@ resource "aws_s3_bucket" "logs" {
     git_repo             = "terragoat"
     yor_trace            = "01946fe9-aae2-4c99-a975-e9b0d3a4696c"
   })
+}
+
+resource "aws_s3_bucket_versioning" "logs_versioning" {
+  bucket = aws_s3_bucket.logs.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "logs_encryption" {
+  bucket = aws_s3_bucket.logs.id
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm     = "aws:kms"
+      kms_master_key_id = aws_kms_key.logs_key.arn
+    }
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "logs_public_block" {
+  bucket                  = aws_s3_bucket.logs.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
 }
