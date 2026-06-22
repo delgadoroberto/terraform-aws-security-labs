@@ -1,22 +1,30 @@
 resource "aws_instance" "web_host" {
-  # ec2 have plain text secrets in user data
-  ami           = "${var.ami}"
+  ami           = var.ami
   instance_type = "t2.nano"
 
-  vpc_security_group_ids = [
-  "${aws_security_group.web-node.id}"]
-  subnet_id = "${aws_subnet.web_subnet.id}"
+  vpc_security_group_ids = [aws_security_group.web-node.id]
+  subnet_id              = aws_subnet.web_subnet.id
+
+  # FIX: Removed hardcoded plain-text AWS Secrets from user_data
   user_data = <<EOF
 #! /bin/bash
 sudo apt-get update
 sudo apt-get install -y apache2
 sudo systemctl start apache2
 sudo systemctl enable apache2
-export AWS_ACCESS_KEY_ID="REDACTED"
-export AWS_SECRET_ACCESS_KEY="REDACTED"
-export AWS_DEFAULT_REGION=us-west-2
 echo "<h1>Deployed via Terraform</h1>" | sudo tee /var/www/html/index.html
 EOF
+
+  # FIX: Enforce IMDSv2 (Instance Metadata Service) to prevent SSRF vulnerabilities
+  metadata_options {
+    http_endpoint               = "enabled"
+    http_tokens                 = "required"
+    http_put_response_hop_limit = 1
+  }
+
+  # FIX: Enable EBS Optimization
+  ebs_optimized = true
+
   tags = merge({
     Name = "${local.resource_prefix.value}-ec2"
     }, {
@@ -32,10 +40,12 @@ EOF
 }
 
 resource "aws_ebs_volume" "web_host_storage" {
-  # unencrypted volume
   availability_zone = "${var.region}a"
-  #encrypted         = false  # Setting this causes the volume to be recreated on apply 
-  size = 1
+  size              = 1
+  
+  # FIX: Encrypt the EBS Volume at rest
+  encrypted         = true
+
   tags = merge({
     Name = "${local.resource_prefix.value}-ebs"
     }, {
@@ -51,9 +61,12 @@ resource "aws_ebs_volume" "web_host_storage" {
 }
 
 resource "aws_ebs_snapshot" "example_snapshot" {
-  # ebs snapshot without encryption
-  volume_id   = "${aws_ebs_volume.web_host_storage.id}"
+  volume_id   = aws_ebs_volume.web_host_storage.id
   description = "${local.resource_prefix.value}-ebs-snapshot"
+  
+  # FIX: Encrypt the EBS Snapshot
+  encrypted   = true
+
   tags = merge({
     Name = "${local.resource_prefix.value}-ebs-snapshot"
     }, {
@@ -70,37 +83,41 @@ resource "aws_ebs_snapshot" "example_snapshot" {
 
 resource "aws_volume_attachment" "ebs_att" {
   device_name = "/dev/sdh"
-  volume_id   = "${aws_ebs_volume.web_host_storage.id}"
-  instance_id = "${aws_instance.web_host.id}"
+  volume_id   = aws_ebs_volume.web_host_storage.id
+  instance_id = aws_instance.web_host.id
 }
 
 resource "aws_security_group" "web-node" {
-  # security group is open to the world in SSH port
   name        = "${local.resource_prefix.value}-sg"
   description = "${local.resource_prefix.value} Security Group"
   vpc_id      = aws_vpc.web_vpc.id
 
+  # FIX: Added description to pass Checkov documentation auditing
   ingress {
-    from_port = 80
-    to_port   = 80
-    protocol  = "tcp"
-    cidr_blocks = [
-    "0.0.0.0/0"]
+    description = "Allow inbound HTTP public traffic"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
   }
+
+  # FIX: Restrict SSH to a private administrative CIDR block and add description
   ingress {
-    from_port = 22
-    to_port   = 22
-    protocol  = "tcp"
-    cidr_blocks = [
-    "0.0.0.0/0"]
+    description = "Allow inbound SSH only from administrative private networks"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["10.0.0.0/16"] 
   }
+
   egress {
-    from_port = 0
-    to_port   = 0
-    protocol  = "-1"
-    cidr_blocks = [
-    "0.0.0.0/0"]
+    description = "Allow all outbound traffic"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
   }
+
   depends_on = [aws_vpc.web_vpc]
   tags = {
     git_commit           = "d68d2897add9bc2203a5ed0632a5cdd8ff8cefb0"
@@ -136,6 +153,9 @@ resource "aws_subnet" "web_subnet" {
   vpc_id                  = aws_vpc.web_vpc.id
   cidr_block              = "172.16.10.0/24"
   availability_zone       = "${var.region}a"
+  
+  # Note: Keeping map_public_ip_on_launch as true since it defines the lab architecture,
+  # but ingress rules are now properly restricted.
   map_public_ip_on_launch = true
 
   tags = merge({
@@ -171,7 +191,6 @@ resource "aws_subnet" "web_subnet2" {
     yor_trace            = "224af03a-00e0-4981-be30-14965833c2db"
   })
 }
-
 
 resource "aws_internet_gateway" "web_igw" {
   vpc_id = aws_vpc.web_vpc.id
@@ -227,7 +246,6 @@ resource "aws_route" "public_internet_gateway" {
   }
 }
 
-
 resource "aws_network_interface" "web-eni" {
   subnet_id   = aws_subnet.web_subnet.id
   private_ips = ["172.16.10.100"]
@@ -246,7 +264,6 @@ resource "aws_network_interface" "web-eni" {
   })
 }
 
-# VPC Flow Logs to S3
 resource "aws_flow_log" "vpcflowlogs" {
   log_destination      = aws_s3_bucket.flowbucket.arn
   log_destination_type = "s3"
@@ -254,8 +271,8 @@ resource "aws_flow_log" "vpcflowlogs" {
   vpc_id               = aws_vpc.web_vpc.id
 
   tags = merge({
-    Name        = "${local.resource_prefix.value}-flowlogs"
-    Environment = local.resource_prefix.value
+    Name                = "${local.resource_prefix.value}-flowlogs"
+    Environment         = local.resource_prefix.value
     }, {
     git_commit           = "d68d2897add9bc2203a5ed0632a5cdd8ff8cefb0"
     git_file             = "terraform/aws/ec2.tf"
@@ -273,8 +290,8 @@ resource "aws_s3_bucket" "flowbucket" {
   force_destroy = true
 
   tags = merge({
-    Name        = "${local.resource_prefix.value}-flowlogs"
-    Environment = local.resource_prefix.value
+    Name                = "${local.resource_prefix.value}-flowlogs"
+    Environment         = local.resource_prefix.value
     }, {
     git_commit           = "d68d2897add9bc2203a5ed0632a5cdd8ff8cefb0"
     git_file             = "terraform/aws/ec2.tf"
