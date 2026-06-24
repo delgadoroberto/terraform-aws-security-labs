@@ -274,8 +274,12 @@ resource "aws_s3_bucket_logging" "data_science_logging" {
 resource "aws_s3_bucket_lifecycle_configuration_v2" "data_science_lifecycle" {
   bucket = aws_s3_bucket.data_science.id
   rule {
-    id     = "cleanup-old-versions"
+    id     = "complete-lifecycle-rule"
     status = "Enabled"
+    filter {}
+    expiration {
+      days = 365
+    }
     noncurrent_version_expiration {
       noncurrent_days = 90
     }
