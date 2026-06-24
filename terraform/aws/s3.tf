@@ -210,8 +210,12 @@ resource "aws_s3_bucket_logging" "operations_logging" {
 resource "aws_s3_bucket_lifecycle_configuration_v2" "operations_lifecycle" {
   bucket = aws_s3_bucket.operations.id
   rule {
-    id     = "cleanup-old-versions"
+    id     = "complete-lifecycle-rule"
     status = "Enabled"
+    filter {}
+    expiration {
+      days = 365
+    }
     noncurrent_version_expiration {
       noncurrent_days = 90
     }
