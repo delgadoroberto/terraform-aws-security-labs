@@ -1,15 +1,15 @@
 # ==========================================
 # 1. DATA BUCKET
 # ==========================================
-# checkov:skip=CKV_AWS_144: "Cross-region replication is not required for lab environments"
-# checkov:skip=CKV_AWS_574: "Event notifications are not required for this lab configuration"
 resource "aws_s3_bucket" "data" {
+  # checkov:skip=CKV_AWS_144: "Cross-region replication is not required for lab environments"
+  # checkov:skip=CKV_AWS_574: "Event notifications are not required for this lab configuration"
   bucket        = "${local.resource_prefix.value}-data"
   force_destroy = true
-  tags = merge({
-    Name        = "${local.resource_prefix.value}-data"
-    Environment = local.resource_prefix.value
-    }, {
+
+  tags = {
+    Name                 = "${local.resource_prefix.value}-data"
+    Environment          = local.resource_prefix.value
     git_commit           = "4d57f83ca4d3a78a44fb36d1dcf0d23983fa44f5"
     git_file             = "terraform/aws/s3.tf"
     git_last_modified_at = "2022-05-18 07:08:06"
@@ -18,7 +18,7 @@ resource "aws_s3_bucket" "data" {
     git_org              = "bridgecrewio"
     git_repo             = "terragoat"
     yor_trace            = "0874007d-903a-4b4c-945f-c9c233e13243"
-  })
+  }
 }
 
 resource "aws_s3_bucket_versioning" "data_versioning" {
@@ -74,10 +74,9 @@ resource "aws_s3_bucket_object" "data_object" {
   key        = "customer-master.xlsx"
   source     = "resources/customer-master.xlsx"
   kms_key_id = aws_kms_key.logs_key.arn
-  tags = merge({
-    Name        = "${local.resource_prefix.value}-customer-master"
-    Environment = local.resource_prefix.value
-    }, {
+  tags = {
+    Name                 = "${local.resource_prefix.value}-customer-master"
+    Environment          = local.resource_prefix.value
     git_commit           = "d68d2897add9bc2203a5ed0632a5cdd8ff8cefb0"
     git_file             = "terraform/aws/s3.tf"
     git_last_modified_at = "2020-06-16 14:46:24"
@@ -86,21 +85,21 @@ resource "aws_s3_bucket_object" "data_object" {
     git_org              = "bridgecrewio"
     git_repo             = "terragoat"
     yor_trace            = "a7f01cc7-63c2-41a8-8555-6665e5e39a64"
-  })
+  }
 }
 
 # ==========================================
 # 3. FINANCIALS BUCKET
 # ==========================================
-# checkov:skip=CKV_AWS_144: "Cross-region replication is not required for lab environments"
-# checkov:skip=CKV_AWS_574: "Event notifications are not required for this lab configuration"
 resource "aws_s3_bucket" "financials" {
+  # checkov:skip=CKV_AWS_144: "Cross-region replication is not required for lab environments"
+  # checkov:skip=CKV_AWS_574: "Event notifications are not required for this lab configuration"
   bucket        = "${local.resource_prefix.value}-financials"
   force_destroy = true
-  tags = merge({
-    Name        = "${local.resource_prefix.value}-financials"
-    Environment = local.resource_prefix.value
-    }, {
+
+  tags = {
+    Name                 = "${local.resource_prefix.value}-financials"
+    Environment          = local.resource_prefix.value
     git_commit           = "d68d2897add9bc2203a5ed0632a5cdd8ff8cefb0"
     git_file             = "terraform/aws/s3.tf"
     git_last_modified_at = "2020-06-16 14:46:24"
@@ -109,7 +108,7 @@ resource "aws_s3_bucket" "financials" {
     git_org              = "bridgecrewio"
     git_repo             = "terragoat"
     yor_trace            = "0e012640-b597-4e5d-9378-d4b584aea913"
-  })
+  }
 }
 
 resource "aws_s3_bucket_versioning" "financials_versioning" {
@@ -160,15 +159,15 @@ resource "aws_s3_bucket_lifecycle_configuration_v2" "financials_lifecycle" {
 # ==========================================
 # 4. OPERATIONS BUCKET
 # ==========================================
-# checkov:skip=CKV_AWS_144: "Cross-region replication is not required for lab environments"
-# checkov:skip=CKV_AWS_574: "Event notifications are not required for this lab configuration"
 resource "aws_s3_bucket" "operations" {
+  # checkov:skip=CKV_AWS_144: "Cross-region replication is not required for lab environments"
+  # checkov:skip=CKV_AWS_574: "Event notifications are not required for this lab configuration"
   bucket        = "${local.resource_prefix.value}-operations"
   force_destroy = true
-  tags = merge({
-    Name        = "${local.resource_prefix.value}-operations"
-    Environment = local.resource_prefix.value
-    }, {
+
+  tags = {
+    Name                 = "${local.resource_prefix.value}-operations"
+    Environment          = local.resource_prefix.value
     git_commit           = "d68d2897add9bc2203a5ed0632a5cdd8ff8cefb0"
     git_file             = "terraform/aws/s3.tf"
     git_last_modified_at = "2020-06-16 14:46:24"
@@ -177,7 +176,7 @@ resource "aws_s3_bucket" "operations" {
     git_org              = "bridgecrewio"
     git_repo             = "terragoat"
     yor_trace            = "29efcf7b-22a8-4bd6-8e14-1f55b3a2d743"
-  })
+  }
 }
 
 resource "aws_s3_bucket_versioning" "operations_versioning" {
@@ -228,12 +227,13 @@ resource "aws_s3_bucket_lifecycle_configuration_v2" "operations_lifecycle" {
 # ==========================================
 # 5. DATA SCIENCE BUCKET
 # ==========================================
-# checkov:skip=CKV_AWS_144: "Cross-region replication is not required for lab environments"
-# checkov:skip=CKV_AWS_574: "Event notifications are not required for this lab configuration"
 resource "aws_s3_bucket" "data_science" {
+  # checkov:skip=CKV_AWS_144: "Cross-region replication is not required for lab environments"
+  # checkov:skip=CKV_AWS_574: "Event notifications are not required for this lab configuration"
   bucket        = "${local.resource_prefix.value}-data-science"
   force_destroy = true
-  tags = merge({}, {
+
+  tags = {
     git_commit           = "d68d2897add9bc2203a5ed0632a5cdd8ff8cefb0"
     git_file             = "terraform/aws/s3.tf"
     git_last_modified_at = "2020-06-16 14:46:24"
@@ -242,7 +242,7 @@ resource "aws_s3_bucket" "data_science" {
     git_org              = "bridgecrewio"
     git_repo             = "terragoat"
     yor_trace            = "9a7c8788-5655-4708-bbc3-64ead9847f64"
-  })
+  }
 }
 
 resource "aws_s3_bucket_versioning" "data_science_versioning" {
@@ -293,15 +293,15 @@ resource "aws_s3_bucket_lifecycle_configuration_v2" "data_science_lifecycle" {
 # ==========================================
 # 6. LOGS BUCKET
 # ==========================================
-# checkov:skip=CKV_AWS_144: "Cross-region replication is not required for lab environments"
-# checkov:skip=CKV_AWS_574: "Event notifications are not required for this lab configuration"
 resource "aws_s3_bucket" "logs" {
+  # checkov:skip=CKV_AWS_144: "Cross-region replication is not required for lab environments"
+  # checkov:skip=CKV_AWS_574: "Event notifications are not required for this lab configuration"
   bucket        = "${local.resource_prefix.value}-logs"
   force_destroy = true
-  tags = merge({
-    Name        = "${local.resource_prefix.value}-logs"
-    Environment = local.resource_prefix.value
-    }, {
+
+  tags = {
+    Name                 = "${local.resource_prefix.value}-logs"
+    Environment          = local.resource_prefix.value
     git_commit           = "d68d2897add9bc2203a5ed0632a5cdd8ff8cefb0"
     git_file             = "terraform/aws/s3.tf"
     git_last_modified_at = "2020-06-16 14:46:24"
@@ -310,7 +310,7 @@ resource "aws_s3_bucket" "logs" {
     git_org              = "bridgecrewio"
     git_repo             = "terragoat"
     yor_trace            = "01946fe9-aae2-4c99-a975-e9b0d3a4696c"
-  })
+  }
 }
 
 resource "aws_s3_bucket_versioning" "logs_versioning" {
@@ -356,7 +356,6 @@ resource "aws_s3_bucket_lifecycle_configuration_v2" "logs_lifecycle" {
 # ==========================================
 # 7. LOGS KMS KEY
 # ==========================================
-# checkov:skip=CKV_AWS_111: "KMS key policy restricted to root account for lab isolation"
 resource "aws_kms_key" "logs_key" {
   description             = "KMS key for logs bucket encryption"
   deletion_window_in_days = 10
@@ -365,10 +364,27 @@ resource "aws_kms_key" "logs_key" {
 }
 
 data "aws_iam_policy_document" "kms_key_policy" {
+  # checkov:skip=CKV_AWS_111: "KMS policy constraints are tailored to root account administration"
+  # checkov:skip=CKV_AWS_356: "KMS master keys require internal wildcard resource definitions"
   statement {
-    sid       = "Enable IAM User Permissions"
-    effect    = "Allow"
-    actions   = ["kms:*"]
+    sid    = "Enable IAM User Permissions"
+    effect = "Allow"
+    actions = [
+      "kms:Create*",
+      "kms:Describe*",
+      "kms:Enable*",
+      "kms:List*",
+      "kms:Put*",
+      "kms:Update*",
+      "kms:Revoke*",
+      "kms:Disable*",
+      "kms:Get*",
+      "kms:Delete*",
+      "kms:TagResource",
+      "kms:UntagResource",
+      "kms:ScheduleKeyDeletion",
+      "kms:CancelKeyDeletion"
+    ]
     resources = ["*"]
     principals {
       type        = "AWS"
