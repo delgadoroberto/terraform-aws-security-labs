@@ -2,6 +2,9 @@
 # 1. DATA BUCKET
 # ==========================================
 resource "aws_s3_bucket" "data" {
+  # checkov:skip=CKV_AWS_144: "Cross-region replication is not required for lab environments"
+  # checkov:skip=CKV_AWS_574: "Event notifications are not required for this lab configuration"
+
   bucket        = "${local.resource_prefix.value}-data"
   force_destroy = true
   tags = merge({
@@ -16,9 +19,6 @@ resource "aws_s3_bucket" "data" {
     git_org              = "bridgecrewio"
     git_repo             = "terragoat"
     yor_trace            = "0874007d-903a-4b4c-945f-c9c233e13243"
-    # checkov:skip=CKV_AWS_144: "Cross-region replication is not required for lab environments"
-    # checkov:skip=CKV_AWS_144: "Cross-region replication is not required for lab environments"
-    # checkov:skip=CKV_AWS_574: "Event notifications are not required for this lab configuration"
   })
 }
 
@@ -94,6 +94,9 @@ resource "aws_s3_bucket_object" "data_object" {
 # 3. FINANCIALS BUCKET
 # ==========================================
 resource "aws_s3_bucket" "financials" {
+  # checkov:skip=CKV_AWS_144: "Cross-region replication is not required for lab environments"
+  # checkov:skip=CKV_AWS_574: "Event notifications are not required for this lab configuration"
+
   bucket        = "${local.resource_prefix.value}-financials"
   force_destroy = true
   tags = merge({
@@ -108,9 +111,6 @@ resource "aws_s3_bucket" "financials" {
     git_org              = "bridgecrewio"
     git_repo             = "terragoat"
     yor_trace            = "0e012640-b597-4e5d-9378-d4b584aea913"
-    # checkov:skip=CKV_AWS_144: "Cross-region replication is not required for lab environments"
-    # checkov:skip=CKV_AWS_144: "Cross-region replication is not required for lab environments"
-    # checkov:skip=CKV_AWS_574: "Event notifications are not required for this lab configuration"
   })
 }
 
@@ -163,6 +163,9 @@ resource "aws_s3_bucket_lifecycle_configuration_v2" "financials_lifecycle" {
 # 4. OPERATIONS BUCKET
 # ==========================================
 resource "aws_s3_bucket" "operations" {
+  # checkov:skip=CKV_AWS_144: "Cross-region replication is not required for lab environments"
+  # checkov:skip=CKV_AWS_574: "Event notifications are not required for this lab configuration"
+
   bucket        = "${local.resource_prefix.value}-operations"
   force_destroy = true
   tags = merge({
@@ -177,9 +180,6 @@ resource "aws_s3_bucket" "operations" {
     git_org              = "bridgecrewio"
     git_repo             = "terragoat"
     yor_trace            = "29efcf7b-22a8-4bd6-8e14-1f55b3a2d743"
-    # checkov:skip=CKV_AWS_144: "Cross-region replication is not required for lab environments"
-    # checkov:skip=CKV_AWS_144: "Cross-region replication is not required for lab environments"
-    # checkov:skip=CKV_AWS_574: "Event notifications are not required for this lab configuration"
   })
 }
 
@@ -232,6 +232,9 @@ resource "aws_s3_bucket_lifecycle_configuration_v2" "operations_lifecycle" {
 # 5. DATA SCIENCE BUCKET
 # ==========================================
 resource "aws_s3_bucket" "data_science" {
+  # checkov:skip=CKV_AWS_144: "Cross-region replication is not required for lab environments"
+  # checkov:skip=CKV_AWS_574: "Event notifications are not required for this lab configuration"
+
   bucket        = "${local.resource_prefix.value}-data-science"
   force_destroy = true
   tags = merge({}, {
@@ -243,9 +246,6 @@ resource "aws_s3_bucket" "data_science" {
     git_org              = "bridgecrewio"
     git_repo             = "terragoat"
     yor_trace            = "9a7c8788-5655-4708-bbc3-64ead9847f64"
-    # checkov:skip=CKV_AWS_144: "Cross-region replication is not required for lab environments"
-    # checkov:skip=CKV_AWS_144: "Cross-region replication is not required for lab environments"
-    # checkov:skip=CKV_AWS_574: "Event notifications are not required for this lab configuration"
   })
 }
 
@@ -298,6 +298,9 @@ resource "aws_s3_bucket_lifecycle_configuration_v2" "data_science_lifecycle" {
 # 6. LOGS BUCKET
 # ==========================================
 resource "aws_s3_bucket" "logs" {
+  # checkov:skip=CKV_AWS_144: "Cross-region replication is not required for lab environments"
+  # checkov:skip=CKV_AWS_574: "Event notifications are not required for this lab configuration"
+
   bucket        = "${local.resource_prefix.value}-logs"
   force_destroy = true
   tags = merge({
@@ -312,9 +315,6 @@ resource "aws_s3_bucket" "logs" {
     git_org              = "bridgecrewio"
     git_repo             = "terragoat"
     yor_trace            = "01946fe9-aae2-4c99-a975-e9b0d3a4696c"
-    # checkov:skip=CKV_AWS_144: "Cross-region replication is not required for lab environments"
-    # checkov:skip=CKV_AWS_144: "Cross-region replication is not required for lab environments"
-    # checkov:skip=CKV_AWS_574: "Event notifications are not required for this lab configuration"
   })
 }
 
@@ -356,4 +356,13 @@ resource "aws_s3_bucket_lifecycle_configuration_v2" "logs_lifecycle" {
       noncurrent_days = 90
     }
   }
+}
+
+# ==========================================
+# 7. LOGS KMS KEY
+# ==========================================
+resource "aws_kms_key" "logs_key" {
+  description             = "KMS key for logs bucket encryption"
+  deletion_window_in_days = 10
+  enable_key_rotation     = true
 }
