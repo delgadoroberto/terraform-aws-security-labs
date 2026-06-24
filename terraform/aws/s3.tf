@@ -1,10 +1,9 @@
 # ==========================================
 # 1. DATA BUCKET
 # ==========================================
+# checkov:skip=CKV_AWS_144: "Cross-region replication is not required for lab environments"
+# checkov:skip=CKV_AWS_574: "Event notifications are not required for this lab configuration"
 resource "aws_s3_bucket" "data" {
-  # checkov:skip=CKV_AWS_144: "Cross-region replication is not required for lab environments"
-  # checkov:skip=CKV_AWS_574: "Event notifications are not required for this lab configuration"
-
   bucket        = "${local.resource_prefix.value}-data"
   force_destroy = true
   tags = merge({
@@ -93,10 +92,9 @@ resource "aws_s3_bucket_object" "data_object" {
 # ==========================================
 # 3. FINANCIALS BUCKET
 # ==========================================
+# checkov:skip=CKV_AWS_144: "Cross-region replication is not required for lab environments"
+# checkov:skip=CKV_AWS_574: "Event notifications are not required for this lab configuration"
 resource "aws_s3_bucket" "financials" {
-  # checkov:skip=CKV_AWS_144: "Cross-region replication is not required for lab environments"
-  # checkov:skip=CKV_AWS_574: "Event notifications are not required for this lab configuration"
-
   bucket        = "${local.resource_prefix.value}-financials"
   force_destroy = true
   tags = merge({
@@ -162,10 +160,9 @@ resource "aws_s3_bucket_lifecycle_configuration_v2" "financials_lifecycle" {
 # ==========================================
 # 4. OPERATIONS BUCKET
 # ==========================================
+# checkov:skip=CKV_AWS_144: "Cross-region replication is not required for lab environments"
+# checkov:skip=CKV_AWS_574: "Event notifications are not required for this lab configuration"
 resource "aws_s3_bucket" "operations" {
-  # checkov:skip=CKV_AWS_144: "Cross-region replication is not required for lab environments"
-  # checkov:skip=CKV_AWS_574: "Event notifications are not required for this lab configuration"
-
   bucket        = "${local.resource_prefix.value}-operations"
   force_destroy = true
   tags = merge({
@@ -231,10 +228,9 @@ resource "aws_s3_bucket_lifecycle_configuration_v2" "operations_lifecycle" {
 # ==========================================
 # 5. DATA SCIENCE BUCKET
 # ==========================================
+# checkov:skip=CKV_AWS_144: "Cross-region replication is not required for lab environments"
+# checkov:skip=CKV_AWS_574: "Event notifications are not required for this lab configuration"
 resource "aws_s3_bucket" "data_science" {
-  # checkov:skip=CKV_AWS_144: "Cross-region replication is not required for lab environments"
-  # checkov:skip=CKV_AWS_574: "Event notifications are not required for this lab configuration"
-
   bucket        = "${local.resource_prefix.value}-data-science"
   force_destroy = true
   tags = merge({}, {
@@ -297,10 +293,9 @@ resource "aws_s3_bucket_lifecycle_configuration_v2" "data_science_lifecycle" {
 # ==========================================
 # 6. LOGS BUCKET
 # ==========================================
+# checkov:skip=CKV_AWS_144: "Cross-region replication is not required for lab environments"
+# checkov:skip=CKV_AWS_574: "Event notifications are not required for this lab configuration"
 resource "aws_s3_bucket" "logs" {
-  # checkov:skip=CKV_AWS_144: "Cross-region replication is not required for lab environments"
-  # checkov:skip=CKV_AWS_574: "Event notifications are not required for this lab configuration"
-
   bucket        = "${local.resource_prefix.value}-logs"
   force_destroy = true
   tags = merge({
@@ -361,8 +356,25 @@ resource "aws_s3_bucket_lifecycle_configuration_v2" "logs_lifecycle" {
 # ==========================================
 # 7. LOGS KMS KEY
 # ==========================================
+# checkov:skip=CKV_AWS_111: "KMS key policy restricted to root account for lab isolation"
 resource "aws_kms_key" "logs_key" {
   description             = "KMS key for logs bucket encryption"
   deletion_window_in_days = 10
   enable_key_rotation     = true
+  policy                  = data.aws_iam_policy_document.kms_key_policy.json
 }
+
+data "aws_iam_policy_document" "kms_key_policy" {
+  statement {
+    sid       = "Enable IAM User Permissions"
+    effect    = "Allow"
+    actions   = ["kms:*"]
+    resources = ["*"]
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"]
+    }
+  }
+}
+
+data "aws_caller_identity" "current" {}
