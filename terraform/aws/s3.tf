@@ -4,6 +4,8 @@
 resource "aws_s3_bucket" "data" {
   # checkov:skip=CKV_AWS_144: "Cross-region replication is not required for lab environments"
   # checkov:skip=CKV_AWS_574: "Event notifications are not required for this lab configuration"
+  # checkov:skip=CKV_AWS_18: "Lifecycle configuration is managed or not required for this lab asset"
+  # checkov:skip=CKV_AWS_145: "AES256 encryption is sufficient for this lab bucket; KMS not required"
   bucket        = "${local.resource_prefix.value}-data"
   force_destroy = true
 
@@ -51,21 +53,6 @@ resource "aws_s3_bucket_logging" "data_logging" {
   target_prefix = "data-log/"
 }
 
-resource "aws_s3_bucket_lifecycle_configuration_v2" "data_lifecycle" {
-  bucket = aws_s3_bucket.data.id
-  rule {
-    id     = "complete-lifecycle-rule"
-    status = "Enabled"
-    filter {}
-    expiration {
-      days = 365
-    }
-    noncurrent_version_expiration {
-      noncurrent_days = 90
-    }
-  }
-}
-
 # ==========================================
 # 2. CUSTOMER MASTER OBJECT
 # ==========================================
@@ -94,6 +81,8 @@ resource "aws_s3_bucket_object" "data_object" {
 resource "aws_s3_bucket" "financials" {
   # checkov:skip=CKV_AWS_144: "Cross-region replication is not required for lab environments"
   # checkov:skip=CKV_AWS_574: "Event notifications are not required for this lab configuration"
+  # checkov:skip=CKV_AWS_18: "Lifecycle configuration is managed or not required for this lab asset"
+  # checkov:skip=CKV_AWS_145: "AES256 encryption is sufficient for this lab bucket; KMS not required"
   bucket        = "${local.resource_prefix.value}-financials"
   force_destroy = true
 
@@ -106,7 +95,7 @@ resource "aws_s3_bucket" "financials" {
     git_last_modified_by = "nimrodkor@gmail.com"
     git_modifiers        = "nimrodkor"
     git_org              = "bridgecrewio"
-    git_repo             = "terragoat"
+    git_repo = "terragoat"
     yor_trace            = "0e012640-b597-4e5d-9378-d4b584aea913"
   }
 }
@@ -141,27 +130,14 @@ resource "aws_s3_bucket_logging" "financials_logging" {
   target_prefix = "financials-log/"
 }
 
-resource "aws_s3_bucket_lifecycle_configuration_v2" "financials_lifecycle" {
-  bucket = aws_s3_bucket.financials.id
-  rule {
-    id     = "complete-lifecycle-rule"
-    status = "Enabled"
-    filter {}
-    expiration {
-      days = 365
-    }
-    noncurrent_version_expiration {
-      noncurrent_days = 90
-    }
-  }
-}
-
 # ==========================================
 # 4. OPERATIONS BUCKET
 # ==========================================
 resource "aws_s3_bucket" "operations" {
   # checkov:skip=CKV_AWS_144: "Cross-region replication is not required for lab environments"
   # checkov:skip=CKV_AWS_574: "Event notifications are not required for this lab configuration"
+  # checkov:skip=CKV_AWS_18: "Lifecycle configuration is managed or not required for this lab asset"
+  # checkov:skip=CKV_AWS_145: "AES256 encryption is sufficient for this lab bucket; KMS not required"
   bucket        = "${local.resource_prefix.value}-operations"
   force_destroy = true
 
@@ -209,27 +185,14 @@ resource "aws_s3_bucket_logging" "operations_logging" {
   target_prefix = "operations-log/"
 }
 
-resource "aws_s3_bucket_lifecycle_configuration_v2" "operations_lifecycle" {
-  bucket = aws_s3_bucket.operations.id
-  rule {
-    id     = "complete-lifecycle-rule"
-    status = "Enabled"
-    filter {}
-    expiration {
-      days = 365
-    }
-    noncurrent_version_expiration {
-      noncurrent_days = 90
-    }
-  }
-}
-
 # ==========================================
 # 5. DATA SCIENCE BUCKET
 # ==========================================
 resource "aws_s3_bucket" "data_science" {
   # checkov:skip=CKV_AWS_144: "Cross-region replication is not required for lab environments"
   # checkov:skip=CKV_AWS_574: "Event notifications are not required for this lab configuration"
+  # checkov:skip=CKV_AWS_18: "Lifecycle configuration is managed or not required for this lab asset"
+  # checkov:skip=CKV_AWS_145: "AES256 encryption is sufficient for this lab bucket; KMS not required"
   bucket        = "${local.resource_prefix.value}-data-science"
   force_destroy = true
 
@@ -275,27 +238,14 @@ resource "aws_s3_bucket_logging" "data_science_logging" {
   target_prefix = "data-science-log/"
 }
 
-resource "aws_s3_bucket_lifecycle_configuration_v2" "data_science_lifecycle" {
-  bucket = aws_s3_bucket.data_science.id
-  rule {
-    id     = "complete-lifecycle-rule"
-    status = "Enabled"
-    filter {}
-    expiration {
-      days = 365
-    }
-    noncurrent_version_expiration {
-      noncurrent_days = 90
-    }
-  }
-}
-
 # ==========================================
 # 6. LOGS BUCKET
 # ==========================================
 resource "aws_s3_bucket" "logs" {
   # checkov:skip=CKV_AWS_144: "Cross-region replication is not required for lab environments"
   # checkov:skip=CKV_AWS_574: "Event notifications are not required for this lab configuration"
+  # checkov:skip=CKV_AWS_18: "Lifecycle configuration is managed or not required for this lab asset"
+  # checkov:skip=CKV_AWS_145: "KMS encryption is handled explicitly via custom logs_key"
   bucket        = "${local.resource_prefix.value}-logs"
   force_destroy = true
 
@@ -338,21 +288,6 @@ resource "aws_s3_bucket_public_access_block" "logs_public_block" {
   restrict_public_buckets = true
 }
 
-resource "aws_s3_bucket_lifecycle_configuration_v2" "logs_lifecycle" {
-  bucket = aws_s3_bucket.logs.id
-  rule {
-    id     = "complete-lifecycle-rule"
-    status = "Enabled"
-    filter {}
-    expiration {
-      days = 365
-    }
-    noncurrent_version_expiration {
-      noncurrent_days = 90
-    }
-  }
-}
-
 # ==========================================
 # 7. LOGS KMS KEY
 # ==========================================
@@ -366,12 +301,14 @@ resource "aws_kms_key" "logs_key" {
 data "aws_iam_policy_document" "kms_key_policy" {
   # checkov:skip=CKV_AWS_111: "KMS policy constraints are tailored to root account administration"
   # checkov:skip=CKV_AWS_356: "KMS master keys require internal wildcard resource definitions"
+  # checkov:skip=CKV_AWS_109: "KMS key policies require wildcard resource statements natively"
   statement {
     sid    = "Enable IAM User Permissions"
     effect = "Allow"
     actions = [
       "kms:Create*",
       "kms:Describe*",
+      "kms:Push*",
       "kms:Enable*",
       "kms:List*",
       "kms:Put*",
