@@ -1,3 +1,26 @@
+# FIX: Added IAM Instance Profile to fix rule CKV_AWS_188 / Alert #237
+resource "aws_iam_instance_profile" "ec2_profile" {
+  name = "${local.resource_prefix.value}-ec2-instance-profile"
+  role = aws_iam_role.ec2_role.name
+}
+
+resource "aws_iam_role" "ec2_role" {
+  name = "${local.resource_prefix.value}-ec2-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+      }
+    ]
+  })
+}
+
 resource "aws_instance" "web_host" {
   ami           = var.ami
   instance_type = "t2.nano"
@@ -5,7 +28,9 @@ resource "aws_instance" "web_host" {
   vpc_security_group_ids = [aws_security_group.web-node.id]
   subnet_id              = aws_subnet.web_subnet.id
 
-  # FIX: Removed hardcoded plain-text AWS Secrets from user_data
+  # FIX: Attached the IAM Instance Profile to the EC2 instance
+  iam_instance_profile = aws_iam_instance_profile.ec2_profile.name
+
   user_data = <<EOF
 #! /bin/bash
 sudo apt-get update
@@ -15,14 +40,15 @@ sudo systemctl enable apache2
 echo "<h1>Deployed via Terraform</h1>" | sudo tee /var/www/html/index.html
 EOF
 
-  # FIX: Enforce IMDSv2 (Instance Metadata Service) to prevent SSRF vulnerabilities
   metadata_options {
     http_endpoint               = "enabled"
     http_tokens                 = "required"
     http_put_response_hop_limit = 1
   }
 
-  # FIX: Enable EBS Optimization
+  # FIX: Enabled Detailed Monitoring to clear security monitoring alert
+  monitoring = true
+
   ebs_optimized = true
 
   tags = merge({
@@ -42,8 +68,6 @@ EOF
 resource "aws_ebs_volume" "web_host_storage" {
   availability_zone = "${var.region}a"
   size              = 1
-  
-  # FIX: Encrypt the EBS Volume at rest
   encrypted         = true
 
   tags = merge({
@@ -63,8 +87,6 @@ resource "aws_ebs_volume" "web_host_storage" {
 resource "aws_ebs_snapshot" "example_snapshot" {
   volume_id   = aws_ebs_volume.web_host_storage.id
   description = "${local.resource_prefix.value}-ebs-snapshot"
-  
-  # FIX: Encrypt the EBS Snapshot
   encrypted   = true
 
   tags = merge({
@@ -92,7 +114,6 @@ resource "aws_security_group" "web-node" {
   description = "${local.resource_prefix.value} Security Group"
   vpc_id      = aws_vpc.web_vpc.id
 
-  # FIX: Added description to pass Checkov documentation auditing
   ingress {
     description = "Allow inbound HTTP public traffic"
     from_port   = 80
@@ -101,7 +122,6 @@ resource "aws_security_group" "web-node" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # FIX: Restrict SSH to a private administrative CIDR block and add description
   ingress {
     description = "Allow inbound SSH only from administrative private networks"
     from_port   = 22
@@ -153,9 +173,6 @@ resource "aws_subnet" "web_subnet" {
   vpc_id                  = aws_vpc.web_vpc.id
   cidr_block              = "172.16.10.0/24"
   availability_zone       = "${var.region}a"
-  
-  # Note: Keeping map_public_ip_on_launch as true since it defines the lab architecture,
-  # but ingress rules are now properly restricted.
   map_public_ip_on_launch = true
 
   tags = merge({
