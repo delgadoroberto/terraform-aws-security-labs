@@ -68,7 +68,10 @@ EOF
 resource "aws_ebs_volume" "web_host_storage" {
   availability_zone = "${var.region}a"
   size              = 1
-  encrypted         = true
+  
+  # FIX: Encrypt the EBS Volume using a Customer Managed Key (CMK) to fix Alert #270
+  encrypted          = true
+  kms_key_id         = aws_kms_key.logs_key.arn
 
   tags = merge({
     Name = "${local.resource_prefix.value}-ebs"
@@ -87,7 +90,10 @@ resource "aws_ebs_volume" "web_host_storage" {
 resource "aws_ebs_snapshot" "example_snapshot" {
   volume_id   = aws_ebs_volume.web_host_storage.id
   description = "${local.resource_prefix.value}-ebs-snapshot"
+  
+  # FIX: Encrypt using CMK via the volume dependency inheritance
   encrypted   = true
+  kms_key_id  = aws_kms_key.logs_key.arn
 
   tags = merge({
     Name = "${local.resource_prefix.value}-ebs-snapshot"
@@ -114,12 +120,13 @@ resource "aws_security_group" "web-node" {
   description = "${local.resource_prefix.value} Security Group"
   vpc_id      = aws_vpc.web_vpc.id
 
+  # FIX: Restrict ingress HTTP traffic to internal VPC CIDR block to fix Alert #236
   ingress {
-    description = "Allow inbound HTTP public traffic"
+    description = "Allow inbound HTTP traffic from internal network"
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = ["172.16.0.0/16"]
   }
 
   ingress {
@@ -130,11 +137,12 @@ resource "aws_security_group" "web-node" {
     cidr_blocks = ["10.0.0.0/16"] 
   }
 
+  # FIX: Restrict outbound traffic to secure standard ports or internal blocks to fix Alert #235
   egress {
-    description = "Allow all outbound traffic"
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
+    description = "Allow outbound HTTPS traffic for updates"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
@@ -185,7 +193,7 @@ resource "aws_subnet" "web_subnet" {
     git_modifiers        = "nimrodkor"
     git_org              = "bridgecrewio"
     git_repo             = "terragoat"
-    yor_trace            = "0345f650-d280-4ca8-86c9-c71c38c0eda8"
+    yor_trace = "0345f650-d280-4ca8-86c9-c71c38c0eda8"
   })
 }
 
