@@ -6,31 +6,34 @@ on:
   pull_request:
     branches: [ main, master ]
 
-permissions:
-  contents: read
-  security-events: write
-  actions: read
+# Enforce least privilege principle at global level
+permissions: {}
 
 jobs:
   scan:
+    name: Run Checkov Static Analysis
     runs-on: ubuntu-latest
+    permissions:
+      contents: read       # Required to checkout the code
+      security-events: write # Required to upload SARIF results
+      actions: read        # Required for upload-sarif action workflow billing check
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Run Checkov Action
-        uses: bridgecrewio/checkov-action@master
+        uses: bridgecrewio/checkov-action@v12.2902.0
         with:
           directory: terraform/aws/
           framework: terraform
-          # Generate both CLI output for console and SARIF for GitHub Security tab
           output_format: cli,sarif
           output_file_path: console,results.sarif
-          # Set to true to allow the workflow to finish and upload the SARIF report
           soft_fail: true
 
       - name: Upload SARIF results to GitHub Code Scanning
         uses: github/codeql-action/upload-sarif@v3
+        # Ensure report is uploaded even if Checkov finds rule violations
         if: always()
         with:
           sarif_file: results.sarif
