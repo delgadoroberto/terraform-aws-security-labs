@@ -31,6 +31,12 @@ resource "aws_instance" "web_host" {
   # FIX: Attached the IAM Instance Profile to the EC2 instance
   iam_instance_profile = aws_iam_instance_profile.ec2_profile.name
 
+  # FIX: Encrypt root block device to fix rule CKV_AWS_3 / Alert #232
+  root_block_device {
+    encrypted  = true
+    kms_key_id = aws_kms_key.logs_key.arn
+  }
+
   user_data = <<EOF
 #! /bin/bash
 sudo apt-get update
@@ -193,7 +199,7 @@ resource "aws_subnet" "web_subnet" {
     git_modifiers        = "nimrodkor"
     git_org              = "bridgecrewio"
     git_repo             = "terragoat"
-    yor_trace = "0345f650-d280-4ca8-86c9-c71c38c0eda8"
+    yor_trace            = "0345f650-d280-4ca8-86c9-c71c38c0eda8"
   })
 }
 
@@ -310,6 +316,9 @@ resource "aws_flow_log" "vpcflowlogs" {
   })
 }
 
+# ==========================================
+# FLOW LOGS TARGET BUCKET CONFIGURATION
+# ==========================================
 resource "aws_s3_bucket" "flowbucket" {
   bucket        = "${local.resource_prefix.value}-flowlogs"
   force_destroy = true
@@ -329,6 +338,49 @@ resource "aws_s3_bucket" "flowbucket" {
   })
 }
 
+# FIX: Enable S3 Versioning to satisfy Checkov compliance audits
+resource "aws_s3_bucket_versioning" "flowbucket_versioning" {
+  bucket = aws_s3_bucket.flowbucket.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+# FIX: Enable Server-Side Encryption using customer managed KMS Key
+resource "aws_s3_bucket_server_side_encryption_configuration" "flowbucket_encryption" {
+  bucket = aws_s3_bucket.flowbucket.id
+  rule {
+    apply_server_side_encryption_by_default {
+      kms_master_key_id = aws_kms_key.logs_key.arn
+      sse_algorithm     = "aws:kms"
+    }
+  }
+}
+
+# FIX: Add Lifecycle Configuration to automatically handle data retention
+resource "aws_s3_bucket_lifecycle_configuration" "flowbucket_lifecycle" {
+  bucket = aws_s3_bucket.flowbucket.id
+  rule {
+    id     = "log-expiration"
+    status = "Enabled"
+    expiration {
+      days = 90
+    }
+  }
+}
+
+# FIX: Secure S3 Bucket Public Access Block to avoid exposure leaks
+resource "aws_s3_bucket_public_access_block" "flowbucket_public_block" {
+  bucket                  = aws_s3_bucket.flowbucket.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+# ==========================================
+# OUTPUT DEFINITIONS
+# ==========================================
 output "ec2_public_dns" {
   description = "Web Host Public DNS name"
   value       = aws_instance.web_host.public_dns
